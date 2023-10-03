@@ -121,6 +121,11 @@ class MainApp extends ConsumerWidget {
         body: LayoutBuilder(
           builder: (context, constraints) {
             final itemCount = ref.watch(counterNameProvider).length;
+            if (itemCount == 0) {
+              return Center(
+                child: Text('아무것도 없음'),
+              );
+            }
             if (constraints.maxHeight > itemCount * 112) {
               return Column(
                 children: [
