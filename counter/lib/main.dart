@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:english_words/english_words.dart';
+
 class CounterNameNotifier extends StateNotifier<List<String>> {
   CounterNameNotifier() : super([]);
 
@@ -38,12 +40,37 @@ class CounterValueNotifier extends StateNotifier<List<int>> {
   }
 }
 
+class CounterHSLNotifier extends StateNotifier<List<HSLColor>> {
+  CounterHSLNotifier() : super([]);
+
+  void addHSL(double H, double S, double L) {
+    state = [...state, HSLColor.fromAHSL(1, H, S, L)];
+  }
+
+  void removeHSL(int index) {
+    state.removeAt(index);
+    state = state.toList();
+  }
+
+  void changeHSL(int index, double H, double S, double L) {
+    state.replaceRange(index, index + 1, [HSLColor.fromAHSL(1, H, S, L)]);
+    state = state.toList();
+  }
+
+  Color returnTextColor(int index) {
+    return state[index].lightness > 0.5 ? Colors.black : Colors.white;
+  }
+}
+
 final counterNameProvider =
     StateNotifierProvider<CounterNameNotifier, List<String>>(
         (ref) => CounterNameNotifier());
 final counterValueProvider =
     StateNotifierProvider<CounterValueNotifier, List<int>>(
         (ref) => CounterValueNotifier());
+final counterHSLProvider =
+    StateNotifierProvider<CounterHSLNotifier, List<HSLColor>>(
+        (ref) => CounterHSLNotifier());
 
 void main() {
   runApp(const ProviderScope(child: MaterialApp(home: MainApp())));
@@ -80,8 +107,12 @@ class MainApp extends ConsumerWidget {
                 onPressed: () {
                   ref
                       .watch(counterNameProvider.notifier)
-                      .addName(Random().nextInt(100).toString());
+                      .addName(nouns[Random().nextInt(2500)]);
                   ref.watch(counterValueProvider.notifier).addValue(0);
+                  ref.watch(counterHSLProvider.notifier).addHSL(
+                      Random().nextDouble() * 360,
+                      Random().nextDouble(),
+                      Random().nextDouble());
                 },
                 icon: const Icon(Icons.add))
           ],
@@ -135,7 +166,7 @@ class Counter extends ConsumerWidget {
       child: ClipRRect(
         borderRadius: const BorderRadius.all(Radius.circular(8)),
         child: Container(
-          color: Color(int.parse(name) * 10000000000),
+          color: ref.watch(counterHSLProvider)[index].toColor(),
           constraints: const BoxConstraints(
             minHeight: 96,
             minWidth: double.infinity,
@@ -165,13 +196,19 @@ class Counter extends ConsumerWidget {
                 children: [
                   Text(
                     name.toString(),
-                    style: T.headlineMedium,
+                    style: T.headlineMedium?.copyWith(
+                        color: ref
+                            .watch(counterHSLProvider.notifier)
+                            .returnTextColor(index)),
                   ),
                   Expanded(
                     child: Center(
                       child: Text(
                         value.toString(),
-                        style: T.headlineSmall,
+                        style: T.headlineSmall?.copyWith(
+                            color: ref
+                                .watch(counterHSLProvider.notifier)
+                                .returnTextColor(index)),
                       ),
                     ),
                   )
