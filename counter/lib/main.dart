@@ -5,72 +5,79 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:english_words/english_words.dart';
 
-class CounterNameNotifier extends StateNotifier<List<String>> {
-  CounterNameNotifier() : super([]);
-
-  void addName(String name) {
-    state = [...state, name];
+class Counter {
+  String name;
+  int value;
+  HSLColor hslColor;
+  Color _textColor = Colors.amber;
+  Counter({required this.name, required this.value, required this.hslColor}) {
+    _textColor = hslColor.lightness > 0.5 ? Colors.black : Colors.white;
   }
 
-  void changeName(int index, String name) {
-    state.replaceRange(index, index + 1, [name]);
+  void changeName(String newName) {
+    name = newName;
+  }
+
+  void changeHSL(HSLColor newHslColor) {
+    hslColor = newHslColor;
+    _textColor = hslColor.lightness > 0.5 ? Colors.black : Colors.white;
+  }
+
+  void changeValue(int newValue) {
+    value = newValue;
+  }
+
+  void plusValue(int amount) {
+    value += amount;
+  }
+
+  Color returnTextColor() {
+    return _textColor;
+  }
+}
+
+class CounterNotifier extends StateNotifier<List<Counter>> {
+  CounterNotifier() : super([]);
+
+  void addCounter(
+      {required String name, required int value, required HSLColor hslColor}) {
+    state = [...state, Counter(name: name, hslColor: hslColor, value: value)];
+  }
+
+  void changeName({required int index, required String newName}) {
+    state[index].changeName(newName);
     state = state.toList();
   }
 
-  void removeName(int index) {
+  void changeHSL({required int index, required HSLColor newHslColor}) {
+    state[index].changeHSL(newHslColor);
+    state = state.toList();
+  }
+
+  void changeValue({required int index, required int newValue}) {
+    state[index].changeValue(newValue);
+    state = state.toList();
+  }
+
+  void plusValue({required int index, required int amount}) {
+    state[index].plusValue(amount);
+    state = state.toList();
+  }
+
+  void removeCounter({required int index}) {
     state.removeAt(index);
     state = state.toList();
   }
 }
 
-class CounterValueNotifier extends StateNotifier<List<int>> {
-  CounterValueNotifier() : super([]);
-  void addValue(int n) {
-    state = [...state, n];
-  }
+final counterProvider =
+    StateNotifierProvider<CounterNotifier, List<Counter>>((ref) {
+  return CounterNotifier();
+});
 
-  void removeValue(int index) {
-    state.removeAt(index);
-    state = state.toList();
-  }
-
-  void changeValue(int index, int i) {
-    state[index] += i;
-    state = state.toList();
-  }
-}
-
-class CounterHSLNotifier extends StateNotifier<List<HSLColor>> {
-  CounterHSLNotifier() : super([]);
-
-  void addHSL(double H, double S, double L) {
-    state = [...state, HSLColor.fromAHSL(1, H, S, L)];
-  }
-
-  void removeHSL(int index) {
-    state.removeAt(index);
-    state = state.toList();
-  }
-
-  void changeHSL(int index, double H, double S, double L) {
-    state.replaceRange(index, index + 1, [HSLColor.fromAHSL(1, H, S, L)]);
-    state = state.toList();
-  }
-
-  Color returnTextColor(int index) {
-    return state[index].lightness > 0.5 ? Colors.black : Colors.white;
-  }
-}
-
-final counterNameProvider =
-    StateNotifierProvider<CounterNameNotifier, List<String>>(
-        (ref) => CounterNameNotifier());
-final counterValueProvider =
-    StateNotifierProvider<CounterValueNotifier, List<int>>(
-        (ref) => CounterValueNotifier());
-final counterHSLProvider =
-    StateNotifierProvider<CounterHSLNotifier, List<HSLColor>>(
-        (ref) => CounterHSLNotifier());
+final counterLengthProvider = StateProvider<int>((ref) {
+  return 0;
+});
 
 void main() {
   runApp(const ProviderScope(child: MaterialApp(home: MainApp())));
@@ -105,14 +112,18 @@ class MainApp extends ConsumerWidget {
           actions: [
             IconButton(
                 onPressed: () {
-                  ref
-                      .watch(counterNameProvider.notifier)
-                      .addName(nouns[Random().nextInt(2500)]);
-                  ref.watch(counterValueProvider.notifier).addValue(0);
-                  ref.watch(counterHSLProvider.notifier).addHSL(
+                  final HSLColor hslColor = HSLColor.fromAHSL(
+                      1,
                       Random().nextDouble() * 360,
                       Random().nextDouble(),
                       Random().nextDouble());
+                  final String name = nouns[Random().nextInt(2500)];
+                  ref
+                      .read(counterProvider.notifier)
+                      .addCounter(name: name, value: 0, hslColor: hslColor);
+                  ref
+                      .read(counterLengthProvider.notifier)
+                      .update((state) => state + 1);
                 },
                 icon: const Icon(Icons.add))
           ],
@@ -120,30 +131,47 @@ class MainApp extends ConsumerWidget {
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
-            final itemCount = ref.watch(counterNameProvider).length;
+            print('builded');
+            final itemCount = ref.watch(counterLengthProvider);
             if (itemCount == 0) {
-              return Center(
-                child: Text('아무것도 없음'),
+              return InkWell(
+                onTap: () {
+                  // final HSLColor hslColor = HSLColor.fromAHSL(
+                  //     1,
+                  //     Random().nextDouble() * 360,
+                  //     Random().nextDouble(),
+                  //     Random().nextDouble());
+                  // final String name = nouns[Random().nextInt(2500)];
+                  // ref
+                  //     .read(counterProvider.notifier)
+                  //     .addCounter(name: name, value: 0, hslColor: hslColor);
+                  // ref
+                  //     .read(counterLengthProvider.notifier)
+                  //     .update((state) => state + 1);
+                },
+                child: const Center(
+                  child: Text('오른쪽 위의 + 버튼을 눌러 카운터를 추가하세요'),
+                ),
               );
             }
             if (constraints.maxHeight > itemCount * 112) {
               return Column(
                 children: [
                   for (var i = 0; i < itemCount; i++)
-                    Expanded(child: Counter(index: i))
+                    Expanded(child: CounterWidget(index: i))
                 ],
               );
             } else {
               return CustomScrollView(
                 slivers: [
                   SliverList.builder(
-                    itemCount: ref.watch(counterNameProvider).length,
+                    itemCount: itemCount,
                     itemBuilder: (context, index) {
                       return ConstrainedBox(
                         constraints: const BoxConstraints(
                           maxHeight: 112,
                         ),
-                        child: Counter(
+                        child: CounterWidget(
                           index: index,
                         ),
                       );
@@ -157,13 +185,15 @@ class MainApp extends ConsumerWidget {
   }
 }
 
-class Counter extends ConsumerWidget {
+class CounterWidget extends ConsumerWidget {
   final int index;
-  const Counter({super.key, required this.index});
+  const CounterWidget({super.key, required this.index});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final name = ref.watch(counterNameProvider)[index];
-    final value = ref.watch(counterValueProvider)[index];
+    print("widget builded");
+    // final counters = ref.watch(counterProvider);
+    // final name = counters[index].name;
+    // final value = counters[index].value;
     final T = Theme.of(context).textTheme;
 
     return Padding(
@@ -171,7 +201,7 @@ class Counter extends ConsumerWidget {
       child: ClipRRect(
         borderRadius: const BorderRadius.all(Radius.circular(8)),
         child: Container(
-          color: ref.watch(counterHSLProvider)[index].toColor(),
+          color: ref.watch(counterProvider)[index].hslColor.toColor(),
           constraints: const BoxConstraints(
             minHeight: 96,
             minWidth: double.infinity,
@@ -183,11 +213,10 @@ class Counter extends ConsumerWidget {
                 child: InkWell(
                   onTap: () {
                     ref
-                        .read(counterValueProvider.notifier)
-                        .changeValue(index, -1);
+                        .read(counterProvider.notifier)
+                        .plusValue(index: index, amount: -1);
                   },
-                  child: const SizedBox(
-                    height: double.infinity,
+                  child: const SizedBox.expand(
                     child: Padding(
                       padding: EdgeInsets.only(left: 8),
                       child: Align(
@@ -200,20 +229,20 @@ class Counter extends ConsumerWidget {
               Column(
                 children: [
                   Text(
-                    name.toString(),
-                    style: T.headlineMedium?.copyWith(
+                    ref.watch(counterProvider)[index].name.toString(),
+                    style: T.headlineSmall?.copyWith(
                         color: ref
-                            .watch(counterHSLProvider.notifier)
-                            .returnTextColor(index)),
+                            .watch(counterProvider)[index]
+                            .returnTextColor()),
                   ),
                   Expanded(
                     child: Center(
                       child: Text(
-                        value.toString(),
-                        style: T.headlineSmall?.copyWith(
+                        ref.watch(counterProvider)[index].value.toString(),
+                        style: T.headlineMedium?.copyWith(
                             color: ref
-                                .watch(counterHSLProvider.notifier)
-                                .returnTextColor(index)),
+                                .watch(counterProvider)[index]
+                                .returnTextColor()),
                       ),
                     ),
                   )
@@ -223,11 +252,10 @@ class Counter extends ConsumerWidget {
                 child: InkWell(
                   onTap: () {
                     ref
-                        .read(counterValueProvider.notifier)
-                        .changeValue(index, 1);
+                        .read(counterProvider.notifier)
+                        .plusValue(index: index, amount: 1);
                   },
-                  child: const SizedBox(
-                    height: double.infinity,
+                  child: const SizedBox.expand(
                     child: Padding(
                       padding: EdgeInsets.only(right: 8),
                       child: Align(
