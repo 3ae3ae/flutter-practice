@@ -75,10 +75,6 @@ final counterProvider =
   return CounterNotifier();
 });
 
-final counterLengthProvider = StateProvider<int>((ref) {
-  return 0;
-});
-
 void main() {
   runApp(const ProviderScope(child: MaterialApp(home: MainApp())));
 }
@@ -121,9 +117,6 @@ class MainApp extends ConsumerWidget {
                   ref
                       .read(counterProvider.notifier)
                       .addCounter(name: name, value: 0, hslColor: hslColor);
-                  ref
-                      .read(counterLengthProvider.notifier)
-                      .update((state) => state + 1);
                 },
                 icon: const Icon(Icons.add))
           ],
@@ -131,23 +124,19 @@ class MainApp extends ConsumerWidget {
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
-            print('builded');
-            final itemCount = ref.watch(counterLengthProvider);
+            final itemCount = ref.watch(counterProvider).length;
             if (itemCount == 0) {
               return InkWell(
                 onTap: () {
-                  // final HSLColor hslColor = HSLColor.fromAHSL(
-                  //     1,
-                  //     Random().nextDouble() * 360,
-                  //     Random().nextDouble(),
-                  //     Random().nextDouble());
-                  // final String name = nouns[Random().nextInt(2500)];
-                  // ref
-                  //     .read(counterProvider.notifier)
-                  //     .addCounter(name: name, value: 0, hslColor: hslColor);
-                  // ref
-                  //     .read(counterLengthProvider.notifier)
-                  //     .update((state) => state + 1);
+                  final HSLColor hslColor = HSLColor.fromAHSL(
+                      1,
+                      Random().nextDouble() * 360,
+                      Random().nextDouble(),
+                      Random().nextDouble());
+                  final String name = nouns[Random().nextInt(2500)];
+                  ref
+                      .read(counterProvider.notifier)
+                      .addCounter(name: name, value: 0, hslColor: hslColor);
                 },
                 child: const Center(
                   child: Text('오른쪽 위의 + 버튼을 눌러 카운터를 추가하세요'),
@@ -190,83 +179,87 @@ class CounterWidget extends ConsumerWidget {
   const CounterWidget({super.key, required this.index});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    print("widget builded");
-    // final counters = ref.watch(counterProvider);
-    // final name = counters[index].name;
-    // final value = counters[index].value;
+    final counters = ref.watch(counterProvider);
+    final name = counters[index].name;
+    final value = counters[index].value;
+    final color = counters[index].hslColor.toColor();
+    final textColor = counters[index].returnTextColor();
     final T = Theme.of(context).textTheme;
 
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.all(Radius.circular(8)),
-        child: Container(
-          color: ref.watch(counterProvider)[index].hslColor.toColor(),
-          constraints: const BoxConstraints(
-            minHeight: 96,
-            minWidth: double.infinity,
-          ),
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            children: [
-              Expanded(
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.all(8.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Container(
+        color: color,
+        constraints: const BoxConstraints(
+          minHeight: 96,
+          minWidth: double.infinity,
+        ),
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            Expanded(
+              child: Material(
+                color: color,
                 child: InkWell(
                   onTap: () {
                     ref
                         .read(counterProvider.notifier)
                         .plusValue(index: index, amount: -1);
                   },
-                  child: const SizedBox.expand(
-                    child: Padding(
-                      padding: EdgeInsets.only(left: 8),
-                      child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Icon(Icons.remove)),
-                    ),
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Icon(
+                          Icons.remove,
+                          color: textColor,
+                        )),
                   ),
                 ),
               ),
-              Column(
-                children: [
-                  Text(
-                    ref.watch(counterProvider)[index].name.toString(),
-                    style: T.headlineSmall?.copyWith(
-                        color: ref
-                            .watch(counterProvider)[index]
-                            .returnTextColor()),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        ref.watch(counterProvider)[index].value.toString(),
-                        style: T.headlineMedium?.copyWith(
-                            color: ref
-                                .watch(counterProvider)[index]
-                                .returnTextColor()),
-                      ),
+            ),
+            Column(
+              children: [
+                Text(
+                  name,
+                  style: T.headlineSmall?.copyWith(color: textColor),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      value.toString(),
+                      style: T.headlineMedium?.copyWith(color: textColor),
                     ),
-                  )
-                ],
-              ),
-              Expanded(
+                  ),
+                )
+              ],
+            ),
+            Expanded(
+              child: Material(
+                color: color,
                 child: InkWell(
                   onTap: () {
                     ref
                         .read(counterProvider.notifier)
                         .plusValue(index: index, amount: 1);
                   },
-                  child: const SizedBox.expand(
-                    child: Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Icon(Icons.add)),
-                    ),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Icon(
+                          Icons.add,
+                          color: textColor,
+                        )),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
