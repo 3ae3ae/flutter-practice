@@ -79,25 +79,6 @@ void main() {
   runApp(const ProviderScope(child: MaterialApp(home: MainApp())));
 }
 
-class Test extends ConsumerWidget {
-  const Test({super.key});
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const Scaffold(
-      body: Row(
-        children: [
-          // SizedBox(height: double.infinity),
-          SizedBox(
-            height: 50,
-            width: 50,
-            child: ColoredBox(color: Colors.amber),
-          )
-        ],
-      ),
-    );
-  }
-}
-
 class MainApp extends ConsumerWidget {
   const MainApp({super.key});
 
@@ -224,9 +205,29 @@ class CounterWidget extends ConsumerWidget {
             ),
             Column(
               children: [
-                Text(
-                  name,
-                  style: T.headlineSmall?.copyWith(color: textColor),
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return DialogUI(index: index);
+                        });
+                  },
+                  child: Row(
+                    children: [
+                      Text(
+                        name,
+                        style: T.headlineSmall?.copyWith(color: textColor),
+                      ),
+                      const SizedBox(
+                        width: 4,
+                      ),
+                      Icon(
+                        Icons.edit,
+                        color: textColor.withAlpha(123),
+                      ),
+                    ],
+                  ),
                 ),
                 Expanded(
                   child: Center(
@@ -263,5 +264,65 @@ class CounterWidget extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class DialogUI extends ConsumerStatefulWidget {
+  final int index;
+  const DialogUI({super.key, required this.index});
+
+  @override
+  ConsumerState<ConsumerStatefulWidget> createState() => _DialogUIState();
+}
+
+class _DialogUIState extends ConsumerState<DialogUI> {
+  late TextEditingController _textController;
+
+  @override
+  void initState() {
+    _textController = TextEditingController();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final index = widget.index;
+    final oldName = ref.watch(counterProvider)[index].name;
+    return Dialog(
+      child: SizedBox(
+        width: 200,
+        height: 200,
+        child: Column(children: [
+          Text('Enter new name'),
+          TextField(
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: oldName,
+            ),
+            controller: _textController,
+            onSubmitted: _submitted,
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _submitted(_textController.text);
+            },
+            child: Text('Submit'),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  void _submitted(String value) {
+    ref
+        .read(counterProvider.notifier)
+        .changeName(index: widget.index, newName: value);
+    Navigator.pop(context);
   }
 }
